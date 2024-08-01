@@ -1,0 +1,173 @@
+<html><head><base href="https://websim.ai/c/cTN5akCzdw2qdagqF" /><title>Linear Regression Demo</title><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min"></script><style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #181818;
+            color: #ffffff;
+        }
+        .container {
+            display: flex;
+            height: 100%;
+        }
+        .sidebar {
+            width: 300px;
+            background-color: #202020;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+            overflow-y: auto;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            color: #39ff14;
+            margin-bottom: 20px;
+        }
+        .slider-container {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #cccccc;
+        }
+        input[type="range"] {
+            width: 100%;
+            background: #39ff14;
+        }
+        #plot {
+            flex-grow: 1;
+            border: 1px solid #39ff14;
+            background-color: #202020;
+        }
+        #modelInfo {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #282828;
+            border-radius: 5px;
+            border: 1px solid #39ff14;
+        }
+        @keyframes sparkle {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style></head><body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>Linear Regression Demo</h1>
+            <div class="slider-container">
+                <label for="slope">Slope (a):</label>
+                <input type="range" id="slope" min="-50" max="50" value="1" step="0.1">
+                <span id="slopeValue">1.0</span>
+            </div>
+            <div class="slider-container">
+                <label for="npoints">Number of points (n):</label>
+                <input type="range" id="npoints" min="100" max="1000" value="500" step="10">
+                <span id="npointsValue">500</span>
+            </div>
+            <div class="slider-container">
+                <label for="noise">Noise factor (c):</label>
+                <input type="range" id="noise" min="10" max="100" value="20" step="1">
+                <span id="noiseValue">20.0</span>
+            </div>
+            <div id="modelInfo"></div>
+        </div>
+        <div class="main-content">
+            <div id="plot"></div>
+        </div>
+    </div>
+
+    <script>
+        function getRandomArbitrary(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function updatePlot() {
+            const a = parseFloat(document.getElementById('slope').value);
+            const n = parseInt(document.getElementById('npoints').value);
+            const c = parseFloat(document.getElementById('noise').value);
+
+            document.getElementById('slopeValue').innerText = a.toFixed(1);
+            document.getElementById('npointsValue').innerText = n;
+            document.getElementById('noiseValue').innerText = c.toFixed(1);
+
+            const x = Array.from({ length: n }, () => getRandomArbitrary(1, 10));
+            const b = getRandomArbitrary(-10, 10);
+            const y = x.map(xi => a * xi + b + c * (Math.random() * 2 - 1));
+
+            const X_mean = x.reduce((sum, xi) => sum + xi, 0) / n;
+            const Y_mean = y.reduce((sum, yi) => sum + yi, 0) / n;
+            const num = x.reduce((sum, xi, i) => sum + (xi - X_mean) * (y[i] - Y_mean), 0);
+            const den = x.reduce((sum, xi) => sum + (xi - X_mean) ** 2, 0);
+            const estimated_a = num / den;
+            const estimated_b = Y_mean - estimated_a * X_mean;
+
+            const x_pred = Array.from({ length: 100 }, (_, i) => i * 0.1 + 1);
+            const y_pred = x_pred.map(xi => estimated_a * xi + estimated_b);
+
+            const trace1 = {
+                x: x,
+                y: y,
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Data points',
+                marker: { 
+                    color: '#39ff14', 
+                    size: 8, 
+                    opacity: 0.8,
+                    symbol: 'star',
+                    line: {
+                        color: '#ffffff',
+                        width: 1
+                    }
+                }
+            };
+            const trace2 = {
+                x: x_pred,
+                y: y_pred,
+                mode: 'lines',
+                type: 'scatter',
+                name: 'Regression line',
+                line: { color: '#ff3939', width: 2 }
+            };
+            const layout = {
+                title: 'Linear Regression Model',
+                xaxis: { title: 'X', gridcolor: '#444444', zerolinecolor: '#666666' },
+                yaxis: { title: 'Y', gridcolor: '#444444', zerolinecolor: '#666666' },
+                hovermode: 'closest',
+                plot_bgcolor: '#202020',
+                paper_bgcolor: '#181818',
+                font: { color: '#ffffff' },
+                showlegend: false
+            };
+            Plotly.newPlot('plot', [trace1, trace2], layout);
+
+            // Add sparkle effect
+            const plotDiv = document.getElementById('plot');
+            const points = plotDiv.getElementsByClassName('point');
+            for (let point of points) {
+                point.style.animation = `sparkle ${0.5 + Math.random() * 1.5}s infinite`;
+            }
+
+            document.getElementById('modelInfo').innerHTML = `
+                <h3>Model Information</h3>
+                <p>True slope (a): ${a.toFixed(2)}</p>
+                <p>Random intercept (b): ${b.toFixed(2)}</p>
+                <p>Estimated slope: ${estimated_a.toFixed(2)}</p>
+                <p>Estimated intercept: ${estimated_b.toFixed(2)}</p>
+            `;
+        }
+
+        document.getElementById('slope').addEventListener('input', updatePlot);
+        document.getElementById('npoints').addEventListener('input', updatePlot);
+        document.getElementById('noise').addEventListener('input', updatePlot);
+
+        updatePlot();
+    </script>
+</body></html>
